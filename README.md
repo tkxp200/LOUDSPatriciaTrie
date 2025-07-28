@@ -21,10 +21,10 @@ list.Add(new Keyset<int>("out", 60));
 var trie = new LOUDSTrie<int>(list);
 
 var result = trie.Search("i");
-Console.WriteLine(result != null ? result.ToString() : "i: null");
+Console.WriteLine(result?.ToString() ?? "i: null");
 
 result = trie.Search("ou");
-Console.WriteLine(result != null ? result.ToString() : "ou: null");
+Console.WriteLine(result?.ToString() ?? "ou: null");
 ```
 
 - Result
@@ -36,8 +36,10 @@ ou: null
 
 ## TODO
 
+- Multiple values for the same key
 - CommonPrefix Search
 - Predictive Search
+- Save/Load
 
 ## Thanks
 
