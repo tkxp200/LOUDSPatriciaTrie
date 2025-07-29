@@ -4,14 +4,18 @@ namespace Trie;
 
 public class BaseTrie<T>
 {
-    List<Keyset<T>> _keysets;
     BaseTrieNode rootNode;
+    T[][] keysets = null!;
 
-    public BaseTrie(List<Keyset<T>> keysets)
+    public BaseTrie(Dictionary<string, List<T>> keysets)
     {
-        _keysets = keysets.OrderBy(e => e.key).ToList();
         rootNode = new BaseTrieNode(null, false, 0);
-        Build();
+        Build(keysets);
+    }
+
+    public T[][] Keysets()
+    {
+        return keysets;
     }
 
     public BaseTrieNode GetRootNode()
@@ -19,23 +23,25 @@ public class BaseTrie<T>
         return rootNode;
     }
 
-    private void Build()
+    private void Build(Dictionary<string, List<T>> keysets)
     {
+        this.keysets = new T[keysets.Count][];
         int count = 0;
-        foreach (var keyset in _keysets)
+        foreach (var keyset in keysets)
         {
+            this.keysets[count] = keyset.Value.ToArray();
             BaseTrieNode prev = rootNode;
             BaseTrieNode current;
-            for (int i = 0; i < keyset.key.Length; i++)
+            for (int i = 0; i < keyset.Key.Length; i++)
             {
-                char c = keyset.key[i];
+                char c = keyset.Key[i];
                 if (prev.childs.TryGetValue(c, out var child))
                 {
                     prev = child;
                 }
                 else
                 {
-                    current = new BaseTrieNode(c, i == keyset.key.Length - 1, i == keyset.key.Length - 1 ? count : null);
+                    current = new BaseTrieNode(c, i == keyset.Key.Length - 1, i == keyset.Key.Length - 1 ? count : null);
                     prev.AddChild(c, current);
                     prev = current;
                 }
@@ -45,7 +51,8 @@ public class BaseTrie<T>
         }
     }
 
-    public Keyset<T>? Search(string key)
+
+    public T[]? Search(string key)
     {
         BaseTrieNode current = rootNode;
         foreach (var c in key)
@@ -57,7 +64,7 @@ public class BaseTrie<T>
             else return null;
         }
 
-        if (current.leaf && current.index != null) return _keysets[(int)current.index];
+        if (current.leaf && current.index != null) return keysets[(int)current.index];
 
         return null;
     }
