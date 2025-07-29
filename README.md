@@ -36,7 +36,6 @@ ou: not found
 
 ## TODO
 
-- Multiple values for the same key
 - CommonPrefix Search
 - Predictive Search
 - Save/Load
