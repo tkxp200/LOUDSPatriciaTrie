@@ -9,10 +9,10 @@ public class BitVector
     // lg(n)^2 = 1024 : ushort
     // lg(n)/2 = 16 : byte
 
-    const int BIG_BLOCK_SPLIT_SIZE = 8;
-    const int SMALL_BLOCK_SPLIT_SIZE = 4;
-    // const int BIG_BLOCK_SPLIT_SIZE = 1024;
-    // const int SMALL_BLOCK_SPLIT_SIZE = 16;
+    // const int BIG_BLOCK_SPLIT_SIZE = 8;
+    // const int SMALL_BLOCK_SPLIT_SIZE = 4;
+    const int BIG_BLOCK_SPLIT_SIZE = 1024;
+    const int SMALL_BLOCK_SPLIT_SIZE = 16;
 
     const int SMALL_BLOCK_SIZE = (BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE) + 1;
 
