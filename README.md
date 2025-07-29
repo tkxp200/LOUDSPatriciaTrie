@@ -10,28 +10,28 @@ This repository provides a memory-efficient, static Patricia Trie implemented in
 using Trie;
 
 
-List<Keyset<int>> list = new();
-list.Add(new Keyset<int>("an", 10));
-list.Add(new Keyset<int>("i", 20));
-list.Add(new Keyset<int>("of", 30));
-list.Add(new Keyset<int>("one", 40));
-list.Add(new Keyset<int>("our", 50));
-list.Add(new Keyset<int>("out", 60));
+Dictionary<string, List<int>> list = new(){
+	["an"]  = new List<int>{10},
+	["i"]   = new List<int>{20, 30},
+	["of"]  = new List<int>{40},
+	["one"] = new List<int>{50},
+	["our"] = new List<int>{60},
+	["out"] = new List<int>{70},
+};
 
 var trie = new LOUDSTrie<int>(list);
 
 var result = trie.Search("i");
-Console.WriteLine(result?.ToString() ?? "i: null");
-
+Console.WriteLine(result != null ? string.Join(", ", result) : "i: not found");
 result = trie.Search("ou");
-Console.WriteLine(result?.ToString() ?? "ou: null");
+Console.WriteLine(result != null ? string.Join(", ", result) : "ou: not found");
 ```
 
 - Result
 
 ```
-key: "i", value: 20
-ou: null
+20, 30
+ou: not found
 ```
 
 ## TODO
