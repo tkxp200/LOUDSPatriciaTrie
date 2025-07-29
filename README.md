@@ -30,8 +30,8 @@ Console.WriteLine($"search 'ou': {string.Join(", ", result)}");
 - Result
 
 ```
-20, 30
-ou: not found
+search 'i': 20, 30
+search 'ou':
 ```
 
 ## TODO
