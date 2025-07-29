@@ -6,18 +6,18 @@ namespace Trie;
 public class LOUDSTrie<T>
 {
     BitVector bitVector = null!;
-    List<Keyset<T>> keysets;
+    T[][] keysets;
     string[] keys = null!;
     int?[] indexes = null!;
 
-    public LOUDSTrie(List<Keyset<T>> keysets)
+    public LOUDSTrie(Dictionary<string, List<T>> keysets)
     {
-        this.keysets = keysets;
         var baseTrie = new BaseTrie<T>(keysets);
+        this.keysets = baseTrie.Keysets();
         Build(baseTrie);
     }
 
-    public Keyset<T>? Search(string query)
+    public T[]? Search(string query)
     {
         var querySpan = query.AsSpan(0); // string to span<>
         int queryIndex = 0;
