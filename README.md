@@ -22,9 +22,9 @@ Dictionary<string, List<int>> list = new(){
 var trie = new LOUDSTrie<int>(list);
 
 var result = trie.Search("i");
-Console.WriteLine(result != null ? string.Join(", ", result) : "i: not found");
+Console.WriteLine($"search 'i': {string.Join(", ", result)}");
 result = trie.Search("ou");
-Console.WriteLine(result != null ? string.Join(", ", result) : "ou: not found");
+Console.WriteLine($"search 'ou': {string.Join(", ", result)}");
 ```
 
 - Result
