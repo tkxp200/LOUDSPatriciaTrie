@@ -17,7 +17,7 @@ public class LOUDSTrie<T>
         Build(baseTrie);
     }
 
-    public T[]? Search(string query)
+    public T[] Search(string query)
     {
         var querySpan = query.AsSpan(0); // string to span<>
         int queryIndex = 0;
@@ -35,7 +35,7 @@ public class LOUDSTrie<T>
                 {
                     var result = indexes[keyIndex];
                     if (result != null) return keysets[(int)result];
-                    else return null;
+                    else return [];
                 }
                 querySpan = query.AsSpan(queryIndex);
                 LBSIndex = bitVector.Select0(keyIndex);
@@ -45,7 +45,7 @@ public class LOUDSTrie<T>
                 LBSIndex++;
             }
         }
-        return null;
+        return [];
     }
 
     public string Debug()

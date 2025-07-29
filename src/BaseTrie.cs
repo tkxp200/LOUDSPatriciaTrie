@@ -52,7 +52,7 @@ public class BaseTrie<T>
     }
 
 
-    public T[]? Search(string key)
+    public T[] Search(string key)
     {
         BaseTrieNode current = rootNode;
         foreach (var c in key)
@@ -61,11 +61,11 @@ public class BaseTrie<T>
             {
                 current = next;
             }
-            else return null;
+            else return [];
         }
 
         if (current.leaf && current.index != null) return keysets[(int)current.index];
 
-        return null;
+        return [];
     }
 }
