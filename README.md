@@ -23,7 +23,7 @@ Dictionary<string, List<int>> list = new(){
 
 var trie = new LOUDSTrie<int>(list);
 
-var result = trie.Search("i");
+int[] result = trie.Search("i");
 Console.WriteLine($"search 'i': {string.Join(", ", result)}");
 result = trie.Search("ou");
 Console.WriteLine($"search 'ou': {string.Join(", ", result)}");
@@ -56,7 +56,7 @@ Dictionary<string, List<int>> list = new(){
 var trie = new LOUDSTrie<int>(list);
 
 
-var results = trie.CommonPrefixSearch("offer");
+List<(string, int[])> results = trie.CommonPrefixSearch("offer");
 Console.WriteLine("common prefix search: 'offer':");
 foreach(var result in results)
 {
