@@ -33,8 +33,8 @@ public class LOUDSTrie<T>
                 queryIndex += nodeKey.Length;
                 if (queryIndex == query.Length)
                 {
-                    var result = indexes[keyIndex];
-                    if (result != null) return keysets[(int)result];
+                    var index = indexes[keyIndex];
+                    if (index != null) return keysets[(int)index];
                     else return [];
                 }
                 querySpan = query.AsSpan(queryIndex);
@@ -46,6 +46,36 @@ public class LOUDSTrie<T>
             }
         }
         return [];
+    }
+
+    public List<(string, T[])> CommonPrefixSearch(string query)
+    {
+        List<(string, T[])> results = new();
+        var keyBuilder = new StringBuilder();
+        var querySpan = query.AsSpan(0);
+        int queryIndex = 0;
+        int keyIndex;
+        string nodeKey;
+        int LBSIndex = bitVector.Select0(1);
+        while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
+        {
+            keyIndex = bitVector.Rank1(LBSIndex + 1);
+            nodeKey = keys[keyIndex];
+            if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
+            {
+                keyBuilder.Append(nodeKey);
+                queryIndex += nodeKey.Length;
+                var index = indexes[keyIndex];
+                if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
+                querySpan = query.AsSpan(queryIndex);
+                LBSIndex = bitVector.Select0(keyIndex);
+            }
+            else
+            {
+                LBSIndex++;
+            }
+        }
+        return results;
     }
 
     public string Debug()
