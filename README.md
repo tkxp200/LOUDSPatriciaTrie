@@ -4,16 +4,18 @@ This repository provides a memory-efficient, static Patricia Trie implemented in
 
 ## Usage
 
+### Match Search
+
 - Example
 
 ```cs
 using Trie;
 
-
 Dictionary<string, List<int>> list = new(){
 	["an"]  = new List<int>{10},
 	["i"]   = new List<int>{20, 30},
 	["of"]  = new List<int>{40},
+	["off"]  = new List<int>{50},
 	["one"] = new List<int>{50},
 	["our"] = new List<int>{60},
 	["out"] = new List<int>{70},
@@ -34,9 +36,45 @@ search 'i': 20, 30
 search 'ou':
 ```
 
+### Common Prefix Search
+
+- Example
+
+```cs
+using Trie;
+
+Dictionary<string, List<int>> list = new(){
+	["an"]  = new List<int>{10},
+	["i"]   = new List<int>{20, 30},
+	["of"]  = new List<int>{40},
+	["off"] = new List<int>{50},
+	["one"] = new List<int>{60},
+	["our"] = new List<int>{70},
+	["out"] = new List<int>{80},
+};
+
+var trie = new LOUDSTrie<int>(list);
+
+
+var results = trie.CommonPrefixSearch("offer");
+Console.WriteLine("common prefix search: 'offer':");
+foreach(var result in results)
+{
+	var values = string.Join(", ", result.Item2);
+	Console.WriteLine($"{result.Item1}: {values}");
+}
+```
+
+- Result
+
+```
+common prefix search: 'offer':
+of: 40
+off: 50
+```
+
 ## TODO
 
-- CommonPrefix Search
 - Predictive Search
 - Save/Load
 
