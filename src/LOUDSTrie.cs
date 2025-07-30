@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text;
 using TrieUtil;
 
@@ -17,7 +18,7 @@ public class LOUDSTrie<T>
         Build(baseTrie);
     }
 
-    public T[] Search(string query)
+    private (int, T[]) Search(string query)
     {
         var querySpan = query.AsSpan(0); // string to span<>
         int queryIndex = 0;
@@ -34,8 +35,8 @@ public class LOUDSTrie<T>
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
-                    if (index != null) return keysets[(int)index];
-                    else return [];
+                    if (index != null) return (LBSIndex, keysets[(int)index]);
+                    else return (LBSIndex, []);
                 }
                 querySpan = query.AsSpan(queryIndex);
                 LBSIndex = bitVector.Select0(keyIndex);
@@ -45,7 +46,38 @@ public class LOUDSTrie<T>
                 LBSIndex++;
             }
         }
-        return [];
+        return (-1, []);
+    }
+
+    public T[] ExactMatchSearch(string query)
+    {
+        return Search(query).Item2;
+    }
+
+    public List<(string, T[])> PredictiveSearch(string query)
+    {
+        List<(string, T[])> results = new();
+        var querySearch = Search(query);
+        if (querySearch.Item1 < 0) return [];
+        if (querySearch.Item2.Length != 0) results.Add((query, querySearch.Item2));
+        var keyBuilder = new StringBuilder(query);
+        SearchChild(bitVector.Select0(bitVector.Rank1(querySearch.Item1 + 1)), results, keyBuilder);
+        return results;
+    }
+
+    public void SearchChild(int LBSIndex, List<(string, T[])> results, StringBuilder keyBuilder)
+    {
+        while (bitVector.Get(LBSIndex))
+        {
+            int keyIndex = bitVector.Rank1(LBSIndex + 1);
+            string nodeKey = keys[keyIndex];
+            keyBuilder.Append(nodeKey);
+            var index = indexes[keyIndex];
+            if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
+            SearchChild(bitVector.Select0(keyIndex), results, keyBuilder);
+            keyBuilder.Remove(keyBuilder.Length - nodeKey.Length, nodeKey.Length);
+            LBSIndex++;
+        }
     }
 
     public List<(string, T[])> CommonPrefixSearch(string query)
