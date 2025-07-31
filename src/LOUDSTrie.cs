@@ -18,7 +18,7 @@ public class LOUDSTrie<T>
         Build(baseTrie);
     }
 
-    private (int, T[]) Search(string query)
+    public T[] ExactMatchSearch(string query)
     {
         var querySpan = query.AsSpan(0); // string to span<>
         int queryIndex = 0;
@@ -35,8 +35,8 @@ public class LOUDSTrie<T>
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
-                    if (index != null) return (LBSIndex, keysets[(int)index]);
-                    else return (LBSIndex, []);
+                    if (index != null) return keysets[(int)index];
+                    else return [];
                 }
                 querySpan = query.AsSpan(queryIndex);
                 LBSIndex = bitVector.Select0(keyIndex);
@@ -46,21 +46,56 @@ public class LOUDSTrie<T>
                 LBSIndex++;
             }
         }
-        return (-1, []);
+        return [];
     }
 
-    public T[] ExactMatchSearch(string query)
+    private (int, string, T[]) PrefixSearch(string query)
     {
-        return Search(query).Item2;
+        var querySpan = query.AsSpan(0);
+        int queryIndex = 0;
+        int keyIndex;
+        string nodeKey;
+        int LBSIndex = bitVector.Select0(1);
+        var builder = new StringBuilder();
+        while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
+        {
+            keyIndex = bitVector.Rank1(LBSIndex + 1);
+            nodeKey = keys[keyIndex];
+            if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
+            {
+                queryIndex += nodeKey.Length;
+                builder.Append(nodeKey);
+                if (queryIndex == query.Length)
+                {
+                    var index = indexes[keyIndex];
+                    if (index != null) return (LBSIndex, query, keysets[(int)index]);
+                    else return (LBSIndex, query, []);
+                }
+                querySpan = query.AsSpan(queryIndex);
+                LBSIndex = bitVector.Select0(keyIndex);
+            }
+            else if (nodeKey.StartsWith(querySpan.ToString(), StringComparison.Ordinal))
+            {
+                builder.Append(nodeKey);
+                var index = indexes[keyIndex];
+                if (index != null) return (LBSIndex, builder.ToString(), keysets[(int)index]);
+                else return (LBSIndex, builder.ToString(), []);
+            }
+            else
+            {
+                LBSIndex++;
+            }
+        }
+        return (-1, "", []);
     }
 
     public List<(string, T[])> PredictiveSearch(string query)
     {
         List<(string, T[])> results = new();
-        var querySearch = Search(query);
+        var querySearch = PrefixSearch(query);
         if (querySearch.Item1 < 0) return [];
-        if (querySearch.Item2.Length != 0) results.Add((query, querySearch.Item2));
-        var keyBuilder = new StringBuilder(query);
+        if (querySearch.Item3.Length != 0) results.Add((querySearch.Item2, querySearch.Item3));
+        var keyBuilder = new StringBuilder(querySearch.Item2);
         SearchChild(bitVector.Select0(bitVector.Rank1(querySearch.Item1 + 1)), results, keyBuilder);
         return results;
     }
