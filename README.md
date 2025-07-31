@@ -4,7 +4,7 @@ This repository provides a memory-efficient, static Patricia Trie implemented in
 
 ## Usage
 
-### Match Search
+### Exact Match Search
 
 - Example
 
@@ -23,7 +23,7 @@ Dictionary<string, List<int>> list = new(){
 
 var trie = new LOUDSTrie<int>(list);
 
-int[] result = trie.Search("i");
+int[] result = trie.ExactMatchSearch("i");
 Console.WriteLine($"search 'i': {string.Join(", ", result)}");
 result = trie.Search("ou");
 Console.WriteLine($"search 'ou': {string.Join(", ", result)}");
