@@ -15,7 +15,7 @@ Dictionary<string, List<int>> list = new(){
 	["an"]  = new List<int>{10},
 	["i"]   = new List<int>{20, 30},
 	["of"]  = new List<int>{40},
-	["off"]  = new List<int>{50},
+	["off"] = new List<int>{50},
 	["one"] = new List<int>{50},
 	["our"] = new List<int>{60},
 	["out"] = new List<int>{70},
@@ -73,10 +73,47 @@ of: 40
 off: 50
 ```
 
+### Predictive Search
+
+- Example
+
+```cs
+using Trie;
+
+Dictionary<string, List<int>> list = new(){
+	["an"]  = new List<int>{10},
+	["i"]   = new List<int>{20, 30},
+	["of"]  = new List<int>{40},
+	["off"] = new List<int>{50},
+	["one"] = new List<int>{60},
+	["our"] = new List<int>{70},
+	["out"] = new List<int>{80},
+};
+
+var trie = new LOUDSTrie<int>(list);
+
+
+List<(string, int[])> results = trie.PredictiveSearch("ou");
+Console.WriteLine("predictive search: 'ou':");
+foreach(var result in results)
+{
+	var values = string.Join(", ", result.Item2);
+	Console.WriteLine($"{result.Item1}: {values}");
+}
+```
+
+- Result
+
+```
+predictive search: 'ou':
+our: 70
+out: 80
+```
+
 ## TODO
 
-- Predictive Search
 - Save/Load
+- Code optimization
 
 ## Thanks
 
