@@ -27,7 +27,7 @@ public class BaseTrie<T>
     {
         this.keysets = new T[keysets.Count][];
         int count = 0;
-        foreach (var keyset in keysets)
+        foreach (var keyset in keysets.OrderBy(e => e.Key))
         {
             this.keysets[count] = keyset.Value.ToArray();
             BaseTrieNode prev = rootNode;
