@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 using TrieUtil;
 
@@ -56,7 +57,7 @@ public class LOUDSTrie<T>
         int keyIndex;
         string nodeKey;
         int LBSIndex = bitVector.Select0(1);
-        var builder = new StringBuilder();
+        var builder = new DefaultInterpolatedStringHandler();
         while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank1(LBSIndex + 1);
@@ -64,7 +65,7 @@ public class LOUDSTrie<T>
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 queryIndex += nodeKey.Length;
-                builder.Append(nodeKey);
+                builder.AppendLiteral(nodeKey);
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
@@ -76,10 +77,10 @@ public class LOUDSTrie<T>
             }
             else if (nodeKey.StartsWith(querySpan.ToString(), StringComparison.Ordinal))
             {
-                builder.Append(nodeKey);
+                builder.AppendLiteral(nodeKey);
                 var index = indexes[keyIndex];
-                if (index != null) return (LBSIndex, builder.ToString(), keysets[(int)index]);
-                else return (LBSIndex, builder.ToString(), []);
+                if (index != null) return (LBSIndex, builder.ToStringAndClear(), keysets[(int)index]);
+                else return (LBSIndex, builder.ToStringAndClear(), []);
             }
             else
             {
