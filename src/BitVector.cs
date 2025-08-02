@@ -222,47 +222,52 @@ public class BitVector
 
 public class BitVectorBuilder
 {
-    const int MAX_OUTPUT_BITSIZE = 100;
-    private BitArray _bitArray;
+    const int MAX_OUTPUT_BITSIZE = 30;
+    const int MAX_INDEX = 15;
+    private List<ushort> _bitVectorList;
+    private int bitIndex = 0;
+    private ushort bitVector = 0;
 
     public BitVectorBuilder()
     {
-        _bitArray = new BitArray(2);
+        _bitVectorList = new();
 
         AddRoot();
     }
 
     private void AddRoot()
     {
-        _bitArray[0] = true;
-        _bitArray[1] = false;
+        Add(false);
+        Add(true);
     }
 
     public void Add(bool value)
     {
-        _bitArray.Length++;
-        int bitCount = _bitArray.Count;
-        _bitArray[bitCount - 1] = value;
-    }
+        if (value) bitVector |= (ushort)(1 << MAX_INDEX - bitIndex);
 
-    public BitVector Build()
-    {
-        var bitVector = new BitVector(_bitArray);
-        return bitVector;
+        bitIndex++;
+
+        if (bitIndex > MAX_INDEX)
+        {
+            _bitVectorList.Add(bitVector);
+            bitVector = 0;
+            bitIndex = 0;
+        }
     }
 
     public override string ToString()
     {
-        if (_bitArray.Count > MAX_OUTPUT_BITSIZE)
-            return "BitArrayのサイズが大きすぎます. BitVectorBuilder.ToString()はデバッグ用メソッドです. 小さいデータで行ってください。";
+        if (_bitVectorList.Count > MAX_OUTPUT_BITSIZE)
+            return "The BitVector is too large. Only a portion will be displayed.";
 
         var builder = new StringBuilder();
 
         builder.AppendLine("BitVector:");
-        for (int i = 0; i < _bitArray.Count; i++)
+        for (int i = 0; i < MathF.Min(_bitVectorList.Count, MAX_OUTPUT_BITSIZE); i++)
         {
-            builder.Append(_bitArray[i] ? 1 : 0);
+            builder.AppendLine(Convert.ToString(_bitVectorList[i], 2).PadLeft(16, '0'));
         }
+        builder.AppendLine(Convert.ToString(bitVector, 2).PadLeft(16, '0'));
 
         return builder.ToString();
     }
