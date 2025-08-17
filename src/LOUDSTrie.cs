@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using TrieUtil;
@@ -159,13 +160,13 @@ public class LOUDSTrie<T>
         builder.AppendLine("keys:");
         foreach (var key in keys)
         {
-            builder.AppendLine($"\"{key}\"");
+            builder.AppendLine(CultureInfo.InvariantCulture, $"\"{key}\"");
         }
         builder.AppendLine();
         builder.AppendLine("indexes:");
         foreach (var i in indexes)
         {
-            builder.AppendLine(i?.ToString() ?? "null");
+            builder.AppendLine(i?.ToString(CultureInfo.InvariantCulture) ?? "null");
         }
         return builder.ToString();
     }

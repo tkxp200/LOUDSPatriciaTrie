@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.ComponentModel;
+using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -132,13 +133,13 @@ public class BitVector
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.AppendLine($"BigBlockSize: {_bigBlock.Length}");
-        builder.AppendLine($"SmallBlockSize: {_smallBlock.GetLength(0)},{_smallBlock.GetLength(1)}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BigBlockSize: {_bigBlock.Length}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"SmallBlockSize: {_smallBlock.GetLength(0)},{_smallBlock.GetLength(1)}");
         builder.AppendLine();
 
         if (_size > MAX_OUTPUT_BITSIZE) return builder.ToString();
 
-        builder.AppendLine($"BitVector Count: {_bitArray.Count}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {_bitArray.Count}");
 
         builder.AppendLine("BitVector:");
         for (int i = 0; i < MathF.Min(_bitArray.Count, MAX_OUTPUT_BITSIZE); i++)
@@ -241,7 +242,7 @@ public class BitVectorBuilder
         if (bitVectorList.Count > MAX_OUTPUT_BITSIZE)
             builder.AppendLine("The BitVector is too large. Only a portion will be displayed.\n");
 
-        builder.AppendLine($"BitVector Count: {bitVectorList.Count}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {bitVectorList.Count}");
 
         builder.AppendLine("BitVector:");
         for (int i = 0; i < MathF.Min(bitVectorList.Count, MAX_OUTPUT_BITSIZE); i++)
