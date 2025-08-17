@@ -178,7 +178,7 @@ public class BitVectorBuilder
     const int SMALL_BLOCK_SIZE = BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE; //64
 
     private List<ushort> bitVectorList;
-    private int bitPos = 0;
+    private int bitPos;
     private int listIndex = -1;
     private int capacity;
     private ushort bitVector = MAX_VALUE;
