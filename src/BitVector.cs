@@ -1,4 +1,8 @@
 ﻿using System.Collections;
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace TrieUtil;
@@ -7,56 +11,57 @@ public class BitVector
 {
     // max n = 2^32
     // lg(n)^2 = 1024 : ushort
-    // lg(n)/2 = 16 : byte
+    // lg(n)/2 = 16
 
     // const int BIG_BLOCK_SPLIT_SIZE = 8;
     // const int SMALL_BLOCK_SPLIT_SIZE = 4;
     const int BIG_BLOCK_SPLIT_SIZE = 1024;
     const int SMALL_BLOCK_SPLIT_SIZE = 16;
 
-    const int SMALL_BLOCK_SIZE = (BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE) + 1;
+    const int SMALL_BLOCK_SIZE = BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE;
 
-    const int MAX_OUTPUT_BITSIZE = 100;
+    const int MAX_OUTPUT_BITSIZE = 1024;
+    const int MAX_INDEX = 15;
 
-    private BitArray _bitArray;
-    int _size;
-    private ushort[] _bigBlock;
-    private byte[,] _smallBlock;
+    private List<ushort> _bitArray;
+    uint _size;
+    private int[] _bigBlock;
+    private short[,] _smallBlock;
 
-
-    public BitVector(BitArray bitArray)
+    public BitVector(List<ushort> bitArray)
     {
         _bitArray = bitArray;
-        _size = _bitArray.Count;
-        RoundUpBitVectorSize();
-        int bigBlockSize = ((_size + BIG_BLOCK_SPLIT_SIZE - 1) / BIG_BLOCK_SPLIT_SIZE) + 1;
-        _bigBlock = new ushort[bigBlockSize];
-        _smallBlock = new byte[bigBlockSize - 1, SMALL_BLOCK_SIZE];
-
+        _size = (uint)_bitArray.Count * SMALL_BLOCK_SPLIT_SIZE;
+        int bigBlockSize = bitArray.Count / SMALL_BLOCK_SIZE;
+        _bigBlock = new int[bigBlockSize + 1]; // bigBlock[0] = 0
+        _smallBlock = new short[bigBlockSize, SMALL_BLOCK_SIZE + 1]; //smallBlock[*, 0] = 0
         Build();
     }
 
-    public int Rank1(int position)
+
+    private int Rank1(int position)
     {
-        if (position > _bitArray.Count || position < 0) return -1;
+        if ((uint)position > _size) return -1;
 
         int count = 0;
-        int bigIndex = position / BIG_BLOCK_SPLIT_SIZE;
-        count += _bigBlock[bigIndex];
-        int smallIndex = position % BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE;
-        count += _smallBlock[bigIndex, smallIndex];
-        int start = bigIndex * BIG_BLOCK_SPLIT_SIZE + smallIndex * SMALL_BLOCK_SPLIT_SIZE;
-        for (int i = start; i < position; i++)
-        {
-            if (_bitArray[i]) count++;
-        }
-
+        int bigBlockIndex = position / BIG_BLOCK_SPLIT_SIZE;
+        count += _bigBlock[bigBlockIndex];
+        int smallBlockIndex = position % BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE;
+        count += _smallBlock[bigBlockIndex, smallBlockIndex];
+        uint mask = (uint)(1 << (position % SMALL_BLOCK_SPLIT_SIZE)) - 1;
+        count += BitOperations.PopCount(_bitArray[position / SMALL_BLOCK_SPLIT_SIZE] & mask);
         return count;
+    }
+
+    public int Rank0(int position)
+    {
+        return position - Rank1(position);
     }
 
     public int Select1(int count)
     {
-        if (count <= 0 || count > _bitArray.Count) return -1;
+        if ((uint)count > _size) return -1;
+        if (count == 0) return -1;
 
         int position = 0;
         int remain = count;
@@ -87,100 +92,39 @@ public class BitVector
         position += smallIndex * SMALL_BLOCK_SPLIT_SIZE;
         remain -= _smallBlock[bigIndex, smallIndex];
 
-        while (remain > 0)
+        var mask = _bitArray[position / SMALL_BLOCK_SPLIT_SIZE];
+        for (remain--; remain > 0; remain--)
         {
-            if (_bitArray[position]) remain--;
-            position++;
+            mask &= (ushort)(mask - 1);
         }
-        return position;
+
+        return position + BitOperations.TrailingZeroCount(mask) + 1;
     }
 
-    public int Select0(int count)
+    public bool Get(int position)
     {
-        if (count <= 0 || count > _bitArray.Count) return -1;
-
-        int position = 0;
-        int remain = count;
-
-        int left = -1;
-        int right = _bigBlock.Length;
-        while (right - left > 1)
-        {
-            int mid = (left + right) / 2;
-            int index = mid * BIG_BLOCK_SPLIT_SIZE;
-            if (index - _bigBlock[mid] < remain) left = mid;
-            else right = mid;
-        }
-        int bigIndex = left;
-        position += bigIndex * BIG_BLOCK_SPLIT_SIZE;
-        remain -= position - _bigBlock[bigIndex];
-
-        left = -1;
-        right = _smallBlock.GetLength(1);
-        while (right - left > 1)
-        {
-            int mid = (left + right) / 2;
-            int index = mid * SMALL_BLOCK_SPLIT_SIZE;
-            if (index - _smallBlock[bigIndex, mid] < remain) left = mid;
-            else right = mid;
-        }
-        int smallIndex = left;
-        position += smallIndex * SMALL_BLOCK_SPLIT_SIZE;
-        remain -= smallIndex * SMALL_BLOCK_SPLIT_SIZE - _smallBlock[bigIndex, smallIndex];
-
-        while (remain > 0)
-        {
-            if (!_bitArray[position]) remain--;
-            position++;
-        }
-        return position;
-    }
-
-    public bool Get(int index)
-    {
-        return _bitArray[index];
-    }
-
-    private void RoundUpBitVectorSize()
-    {
-        for (int i = 0; i < (BIG_BLOCK_SPLIT_SIZE - _size % BIG_BLOCK_SPLIT_SIZE) % BIG_BLOCK_SPLIT_SIZE; i++)
-        {
-            _bitArray.Length++;
-            _bitArray[_size + i] = false;
-        }
+        var index = position / SMALL_BLOCK_SPLIT_SIZE;
+        var bitPos = position % SMALL_BLOCK_SPLIT_SIZE;
+        return (_bitArray[index] & (1 << bitPos)) != 0;
     }
 
     private void Build()
     {
-        byte smallCount = 0;
-        ushort bigCount = 0;
+        int count = 0;
+        int smallBlockIndex = 0;
         int bigBlockIndex = 1;
-        int smallBlockIndex = 1;
-        // Console.WriteLine($"BIG_BLOCK_SPLIT_SIZE: {BIG_BLOCK_SPLIT_SIZE}");
-        // Console.WriteLine($"SMALL_BLOCK_SPLIT_SIZE: {SMALL_BLOCK_SPLIT_SIZE}");
-        for (int i = 0; i < _bitArray.Count; i++)
+        var span = CollectionsMarshal.AsSpan(_bitArray);
+        for (int i = 0; i < span.Length; i++)
         {
-            // Console.WriteLine($"i: {i}");
-            // if(i < _size) Console.WriteLine($"bit: {_bitArray[i]}");
-            if (i < _size && _bitArray[i])
+            smallBlockIndex++;
+            count += BitOperations.PopCount(span[i]);
+            _smallBlock[bigBlockIndex - 1, smallBlockIndex] = (short)count;
+            if (smallBlockIndex == SMALL_BLOCK_SIZE)
             {
-                smallCount++;
-                bigCount++;
-            }
-            // Console.WriteLine($"i + 1 % SMALL_BLOCK_SPLIT_SIZE == 0: {(i + 1) % SMALL_BLOCK_SPLIT_SIZE == 0}");
-            if ((i + 1) % SMALL_BLOCK_SPLIT_SIZE == 0)
-            {
-                _smallBlock[bigBlockIndex - 1, smallBlockIndex] = (byte)(smallCount + _smallBlock[bigBlockIndex - 1, smallBlockIndex - 1]);
-                smallCount = 0;
-                smallBlockIndex++;
-            }
-            // Console.WriteLine($"i + 1 % BIG_BLOCK_SPLIT_SIZE == 0: {(i + 1) % BIG_BLOCK_SPLIT_SIZE == 0}");
-            if ((i + 1) % BIG_BLOCK_SPLIT_SIZE == 0)
-            {
-                _bigBlock[bigBlockIndex] = (ushort)(bigCount + _bigBlock[bigBlockIndex - 1]);
-                bigCount = 0;
+                _bigBlock[bigBlockIndex] = _bigBlock[bigBlockIndex - 1] + count;
                 bigBlockIndex++;
-                smallBlockIndex = 1;
+                smallBlockIndex = 0;
+                count = 0;
             }
         }
     }
@@ -188,17 +132,19 @@ public class BitVector
     public override string ToString()
     {
         var builder = new StringBuilder();
-        builder.AppendLine($"BitArraySize: {_bitArray.Count}");
         builder.AppendLine($"BigBlockSize: {_bigBlock.Length}");
         builder.AppendLine($"SmallBlockSize: {_smallBlock.GetLength(0)},{_smallBlock.GetLength(1)}");
         builder.AppendLine();
 
         if (_size > MAX_OUTPUT_BITSIZE) return builder.ToString();
 
-        builder.AppendLine("BitArray:");
-        for (int i = 0; i < _bitArray.Count; i++)
+        builder.AppendLine($"BitVector Count: {_bitArray.Count}");
+
+        builder.AppendLine("BitVector:");
+        for (int i = 0; i < MathF.Min(_bitArray.Count, MAX_OUTPUT_BITSIZE); i++)
         {
-            builder.Append(_bitArray[i] ? 1 : 0);
+            builder.Append(Convert.ToString(_bitArray[i], 2).PadLeft(MAX_INDEX + 1, '0').Reverse().ToArray());
+            builder.AppendLine();
         }
         builder.AppendLine();
         builder.AppendLine();
@@ -222,15 +168,24 @@ public class BitVector
 
 public class BitVectorBuilder
 {
-    const int MAX_OUTPUT_BITSIZE = 30;
+    const int MAX_OUTPUT_BITSIZE = 128;
     const int MAX_INDEX = 15;
-    private List<ushort> _bitVectorList;
-    private int bitIndex = 0;
-    private ushort bitVector = 0;
+    const int BIG_BLOCK_SPLIT_SIZE = 1024;
+    const int SMALL_BLOCK_SPLIT_SIZE = 16;
+    const ushort MAX_VALUE = ushort.MaxValue;
+
+    const int SMALL_BLOCK_SIZE = BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE; //64
+
+    private List<ushort> bitVectorList;
+    private int bitPos = 0;
+    private int listIndex = -1;
+    private int capacity;
+    private ushort bitVector = MAX_VALUE;
 
     public BitVectorBuilder()
     {
-        _bitVectorList = new();
+        capacity = SMALL_BLOCK_SIZE;
+        bitVectorList = new(capacity);
 
         AddRoot();
     }
@@ -243,31 +198,57 @@ public class BitVectorBuilder
 
     public void Add(bool value)
     {
-        if (value) bitVector |= (ushort)(1 << MAX_INDEX - bitIndex);
+        if (!value) bitVector &= (ushort)~(1 << bitPos);
 
-        bitIndex++;
+        bitPos++;
 
-        if (bitIndex > MAX_INDEX)
+        if (bitPos > MAX_INDEX)
         {
-            _bitVectorList.Add(bitVector);
-            bitVector = 0;
-            bitIndex = 0;
+            listIndex++;
+            if (listIndex >= capacity)
+            {
+                capacity += SMALL_BLOCK_SIZE;
+                bitVectorList.Capacity = capacity;
+            }
+
+            bitVectorList.Add(bitVector);
+            bitVector = MAX_VALUE;
+            bitPos = 0;
+        }
+    }
+
+    public BitVector Build()
+    {
+        if (bitPos != 0) bitVectorList.Add(bitVector);
+
+        FillToCapacity();
+
+        return new BitVector(bitVectorList);
+    }
+
+    public void FillToCapacity()
+    {
+        while (bitVectorList.Count < capacity)
+        {
+            bitVectorList.Add(MAX_VALUE);
         }
     }
 
     public override string ToString()
     {
-        if (_bitVectorList.Count > MAX_OUTPUT_BITSIZE)
-            return "The BitVector is too large. Only a portion will be displayed.";
 
         var builder = new StringBuilder();
+        if (bitVectorList.Count > MAX_OUTPUT_BITSIZE)
+            builder.AppendLine("The BitVector is too large. Only a portion will be displayed.\n");
+
+        builder.AppendLine($"BitVector Count: {bitVectorList.Count}");
 
         builder.AppendLine("BitVector:");
-        for (int i = 0; i < MathF.Min(_bitVectorList.Count, MAX_OUTPUT_BITSIZE); i++)
+        for (int i = 0; i < MathF.Min(bitVectorList.Count, MAX_OUTPUT_BITSIZE); i++)
         {
-            builder.AppendLine(Convert.ToString(_bitVectorList[i], 2).PadLeft(16, '0'));
+            builder.AppendLine(Convert.ToString(bitVectorList[i], 2).PadLeft(16, '0'));
         }
-        builder.AppendLine(Convert.ToString(bitVector, 2).PadLeft(16, '0'));
+        if (bitPos != 0) builder.AppendLine(Convert.ToString(bitVector, 2).PadLeft(16, '0'));
 
         return builder.ToString();
     }
