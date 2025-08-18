@@ -3,22 +3,37 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using LOUDSTrieUtil;
+using MemoryPack;
 
 namespace LOUDSPatriciaTrie;
 
-public class LOUDSTrie<T>
+[MemoryPackable]
+public partial class LOUDSTrie<T>
 {
-    private BitVector bitVector = null!;
-    private readonly T[][] keysets;
+    [MemoryPackOrder(0)]
+    public BitVector bitVector { get; private set; } = null!;
+    [MemoryPackOrder(1)]
+    public T[][] keysets { get; }
     // private string[] keys = null!;
-    private ReadOnlyMemory<char>[] keys = null!;
-    private int[] indexes = null!;
+    [MemoryPackOrder(2)]
+    public ReadOnlyMemory<char>[] keys { get; private set; } = null!;
+    [MemoryPackOrder(3)]
+    public int[] indexes { get; private set; } = null!;
 
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
     {
         var baseTrie = new BaseTrie<T>(keysets);
         this.keysets = baseTrie.Keysets().ToArray();
         Build(baseTrie);
+    }
+
+    [MemoryPackConstructor]
+    public LOUDSTrie(BitVector bitVector, T[][] keysets, ReadOnlyMemory<char>[] keys, int[] indexes)
+    {
+        this.bitVector = bitVector;
+        this.keysets = keysets;
+        this.keys = keys;
+        this.indexes = indexes;
     }
 
     public T[] ExactMatchSearch(string query)

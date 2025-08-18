@@ -5,10 +5,12 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using MemoryPack;
 
 namespace LOUDSTrieUtil;
 
-public class BitVector
+[MemoryPackable]
+public partial class BitVector
 {
     // max n = 2^32
     // lg(n)^2 = 1024 : ushort
@@ -24,10 +26,14 @@ public class BitVector
     const int MAX_OUTPUT_BITSIZE = 1024;
     const int MAX_INDEX = 15;
 
-    private readonly List<ushort> bitArray;
-    private readonly uint size;
-    private readonly int[] bigBlock;
-    private readonly short[,] smallBlock;
+    [MemoryPackOrder(0)]
+    public List<ushort> bitArray{ get; }
+    [MemoryPackOrder(1)]
+    public uint size{ get; }
+    [MemoryPackOrder(2)]
+    public int[] bigBlock{ get; }
+    [MemoryPackOrder(3)]
+    public short[,] smallBlock{ get; }
 
     public BitVector(List<ushort> bitArray)
     {
@@ -37,6 +43,15 @@ public class BitVector
         bigBlock = new int[bigBlockSize + 1]; // bigBlock[0] = 0
         smallBlock = new short[bigBlockSize, SMALL_BLOCK_SIZE + 1]; //smallBlock[*, 0] = 0
         Build();
+    }
+
+    [MemoryPackConstructor]
+    public BitVector(List<ushort> bitArray, uint size, int[] bigBlock, short[,] smallBlock)
+    {
+        this.bitArray = bitArray;
+        this.size = size;
+        this.bigBlock = bigBlock;
+        this.smallBlock = smallBlock;
     }
 
 
