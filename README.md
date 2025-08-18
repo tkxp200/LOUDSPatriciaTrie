@@ -9,7 +9,7 @@ This repository provides a memory-efficient, static Patricia Trie implemented in
 - Example
 
 ```cs
-using Trie;
+using LOUDSPatriciaTrie;
 
 Dictionary<string, List<int>> list = new(){
 	["an"]  = new List<int>{10},
@@ -41,7 +41,7 @@ search 'ou':
 - Example
 
 ```cs
-using Trie;
+using LOUDSPatriciaTrie;
 
 Dictionary<string, List<int>> list = new(){
 	["an"]  = new List<int>{10},
@@ -78,7 +78,7 @@ off: 50
 - Example
 
 ```cs
-using Trie;
+using LOUDSPatriciaTrie;
 
 Dictionary<string, List<int>> list = new(){
 	["an"]  = new List<int>{10},
