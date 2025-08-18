@@ -179,5 +179,6 @@ off: 50
 
 ## Thanks
 
+- [Roslynator](https://github.com/dotnet/roslynator)
 - [MemoryPack](https://github.com/Cysharp/MemoryPack)
 - https://takeda25.hatenablog.jp/entry/20120421/1335019644
