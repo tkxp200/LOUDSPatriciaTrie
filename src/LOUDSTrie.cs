@@ -8,10 +8,10 @@ namespace Trie;
 
 public class LOUDSTrie<T>
 {
-    BitVector bitVector = null!;
-    T[][] keysets;
-    string[] keys = null!;
-    int?[] indexes = null!;
+    private BitVector bitVector = null!;
+    private readonly T[][] keysets;
+    private string[] keys = null!;
+    private int?[] indexes = null!;
 
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
     {
