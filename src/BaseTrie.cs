@@ -4,7 +4,7 @@ namespace Trie;
 
 public class BaseTrie<T>
 {
-    BaseTrieNode rootNode;
+    readonly BaseTrieNode rootNode;
     T[][] keysets = null!;
 
     public BaseTrie(Dictionary<string, List<T>> keysets)
@@ -61,7 +61,10 @@ public class BaseTrie<T>
             {
                 current = next;
             }
-            else return [];
+            else
+            {
+                return [];
+            }
         }
 
         if (current.leaf && current.index != null) return keysets[(int)current.index];
