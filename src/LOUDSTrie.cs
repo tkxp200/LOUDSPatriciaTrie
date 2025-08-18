@@ -59,7 +59,7 @@ public class LOUDSTrie<T>
         int keyIndex;
         ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1);
-        var builder = new DefaultInterpolatedStringHandler();
+        var builder = new StringBuilder();
         while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
@@ -67,7 +67,7 @@ public class LOUDSTrie<T>
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 queryIndex += nodeKey.Length;
-                builder.AppendFormatted(nodeKey);
+                builder.Append(nodeKey);
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
@@ -79,10 +79,10 @@ public class LOUDSTrie<T>
             }
             else if (nodeKey.StartsWith(querySpan, StringComparison.Ordinal))
             {
-                builder.AppendFormatted(nodeKey);
+                builder.Append(nodeKey);
                 var index = indexes[keyIndex];
-                if (index != null) return (LBSIndex, builder.ToStringAndClear(), keysets[(int)index]);
-                else return (LBSIndex, builder.ToStringAndClear(), []);
+                if (index != null) return (LBSIndex, builder.ToString(), keysets[(int)index]);
+                else return (LBSIndex, builder.ToString(), []);
             }
             else
             {
