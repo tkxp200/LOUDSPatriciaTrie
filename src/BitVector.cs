@@ -24,10 +24,10 @@ public class BitVector
     const int MAX_OUTPUT_BITSIZE = 1024;
     const int MAX_INDEX = 15;
 
-    private List<ushort> _bitArray;
-    uint _size;
-    private int[] _bigBlock;
-    private short[,] _smallBlock;
+    private readonly List<ushort> _bitArray;
+    private readonly uint _size;
+    private readonly int[] _bigBlock;
+    private readonly short[,] _smallBlock;
 
     public BitVector(List<ushort> bitArray)
     {
@@ -177,7 +177,7 @@ public class BitVectorBuilder
 
     const int SMALL_BLOCK_SIZE = BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE; //64
 
-    private List<ushort> bitVectorList;
+    private readonly List<ushort> bitVectorList;
     private int bitPos;
     private int listIndex = -1;
     private int capacity;
