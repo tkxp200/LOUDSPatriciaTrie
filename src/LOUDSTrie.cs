@@ -120,7 +120,7 @@ public class LOUDSTrie<T>
     public List<(string, T[])> CommonPrefixSearch(string query)
     {
         List<(string, T[])> results = new();
-        var keyBuilder = new StringBuilder();
+        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
         var querySpan = query.AsSpan(0);
         int queryIndex = 0;
         int keyIndex;
@@ -132,7 +132,7 @@ public class LOUDSTrie<T>
             nodeKey = keys[keyIndex];
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
-                keyBuilder.Append(nodeKey);
+                keyBuilder.AppendLiteral(nodeKey);
                 queryIndex += nodeKey.Length;
                 var index = indexes[keyIndex];
                 if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
@@ -144,6 +144,7 @@ public class LOUDSTrie<T>
                 LBSIndex++;
             }
         }
+        keyBuilder.ToStringAndClear();
         return results;
     }
 
@@ -176,6 +177,7 @@ public class LOUDSTrie<T>
         var bitVectorBuilder = new BitVectorBuilder();
         List<string> keyList = new() { "", ""};
         List<int?> indexList = new() { null, null};
+        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
 
         Queue<BaseTrieNode> queue = new();
         queue.Enqueue(baseTrie.GetRootNode());
@@ -186,14 +188,14 @@ public class LOUDSTrie<T>
                 foreach (var child in item.childs)
                 {
                     var current = child.Value;
-                    var keyBuilder = new StringBuilder(current.key.ToString());
+                    keyBuilder.AppendFormatted(current.key);
                     while (current.childs.Count == 1 && !current.leaf)
                     {
                         current = current.childs.First().Value;
-                        keyBuilder.Append(current.key);
+                        keyBuilder.AppendFormatted(current.key);
                     }
                     bitVectorBuilder.Add(false);
-                    keyList.Add(keyBuilder.ToString());
+                    keyList.Add(keyBuilder.ToStringAndClear());
                     indexList.Add(current.index);
                     queue.Enqueue(current);
                 }
