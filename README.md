@@ -179,4 +179,5 @@ off: 50
 
 ## Thanks
 
+- [MemoryPack](https://github.com/Cysharp/MemoryPack)
 - https://takeda25.hatenablog.jp/entry/20120421/1335019644
