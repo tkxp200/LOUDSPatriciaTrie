@@ -42,7 +42,7 @@ public class BaseTrie<T>
                 }
                 else
                 {
-                    current = new BaseTrieNode(c, i == keyset.Key.Length - 1, i == keyset.Key.Length - 1 ? count : null);
+                    current = new BaseTrieNode(c, i == keyset.Key.Length - 1, i == keyset.Key.Length - 1 ? count : -1);
                     prev.AddChild(c, current);
                     prev = current;
                 }
@@ -68,7 +68,7 @@ public class BaseTrie<T>
             }
         }
 
-        if (current.leaf && current.index != null) return keysets[(int)current.index];
+        if (current.leaf && current.index >= 0) return keysets[(int)current.index];
 
         return [];
     }

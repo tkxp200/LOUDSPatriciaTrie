@@ -12,7 +12,7 @@ public class LOUDSTrie<T>
     private readonly T[][] keysets;
     // private string[] keys = null!;
     private ReadOnlyMemory<char>[] keys = null!;
-    private int?[] indexes = null!;
+    private int[] indexes = null!;
 
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
     {
@@ -38,7 +38,7 @@ public class LOUDSTrie<T>
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
-                    if (index != null) return keysets[(int)index];
+                    if (index >= 0) return keysets[index];
                     else return [];
                 }
                 querySpan = query.AsSpan(queryIndex);
@@ -71,7 +71,7 @@ public class LOUDSTrie<T>
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
-                    if (index != null) return (LBSIndex, query, keysets[(int)index]);
+                    if (index >= 0) return (LBSIndex, query, keysets[index]);
                     else return (LBSIndex, query, []);
                 }
                 querySpan = query.AsSpan(queryIndex);
@@ -81,7 +81,7 @@ public class LOUDSTrie<T>
             {
                 builder.Append(nodeKey);
                 var index = indexes[keyIndex];
-                if (index != null) return (LBSIndex, builder.ToString(), keysets[(int)index]);
+                if (index >= 0) return (LBSIndex, builder.ToString(), keysets[index]);
                 else return (LBSIndex, builder.ToString(), []);
             }
             else
@@ -111,7 +111,7 @@ public class LOUDSTrie<T>
             var nodeKey = keys[keyIndex];
             keyBuilder.Append(nodeKey);
             var index = indexes[keyIndex];
-            if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
+            if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
             SearchChild(bitVector.Select1(keyIndex), results, keyBuilder);
             keyBuilder.Remove(keyBuilder.Length - nodeKey.Length, nodeKey.Length);
             LBSIndex++;
@@ -136,7 +136,7 @@ public class LOUDSTrie<T>
                 keyBuilder.AppendFormatted(nodeKey);
                 queryIndex += nodeKey.Length;
                 var index = indexes[keyIndex];
-                if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
+                if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
                 querySpan = query.AsSpan(queryIndex);
                 LBSIndex = bitVector.Select1(keyIndex);
             }
@@ -168,7 +168,7 @@ public class LOUDSTrie<T>
         builder.AppendLine("indexes:");
         foreach (var i in indexes)
         {
-            builder.AppendLine(i?.ToString(CultureInfo.InvariantCulture) ?? "null");
+            builder.AppendLine(i.ToString(CultureInfo.InvariantCulture));
         }
         return builder.ToString();
     }
@@ -177,7 +177,7 @@ public class LOUDSTrie<T>
     {
         var bitVectorBuilder = new BitVectorBuilder();
         List<ReadOnlyMemory<char>> keyList = new() { string.Empty.AsMemory(), string.Empty.AsMemory()};
-        List<int?> indexList = new() { null, null};
+        List<int> indexList = new() { -1, -1};
         var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
 
         Queue<BaseTrieNode> queue = new();
