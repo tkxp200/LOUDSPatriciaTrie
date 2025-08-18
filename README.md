@@ -110,9 +110,71 @@ our: 70
 out: 80
 ```
 
+### Save
+
+- Example
+
+```cs
+using LOUDSPatriciaTrie;
+
+public class SaveLOUDSTrie
+{
+	static Dictionary<string, List<int>> list = new(){
+		["an"]  = new List<int>{10},
+		["i"]   = new List<int>{20, 30},
+		["of"]  = new List<int>{40},
+		["off"] = new List<int>{50},
+		["one"] = new List<int>{60},
+		["our"] = new List<int>{70},
+		["out"] = new List<int>{80},
+	};
+
+	static string filePath = "dictionary.trie";
+
+	public static async Task Main()
+	{
+		var trie = new LOUDSTrie<int>(list);
+		await LOUDSTrieIO.SaveTrieAsync(trie, filePath);
+	}
+}
+```
+
+### Load
+
+- Example
+
+```cs
+using LOUDSPatriciaTrie;
+
+public class LoadLOUDSTrie
+{
+	static string filePath = "dictionary.trie";
+
+	public static async Task Main()
+	{
+		var trie = await LOUDSTrieIO.LoadTrieAsync<int>(filePath);
+
+		List<(string, int[])> results = trie.CommonPrefixSearch("offer");
+		Console.WriteLine("common prefix search: 'offer':");
+		foreach(var result in results)
+		{
+			var values = string.Join(", ", result.Item2);
+			Console.WriteLine($"{result.Item1}: {values}");
+		}
+	}
+}
+```
+
+- Result
+
+```
+common prefix search: 'offer':
+of: 40
+off: 50
+```
+
 ## TODO
 
-- Save/Load
 - Code optimization
 
 ## Thanks
