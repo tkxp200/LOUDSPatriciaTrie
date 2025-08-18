@@ -27,7 +27,7 @@ public class LOUDSTrie<T>
         int keyIndex;
         string nodeKey;
         int LBSIndex = bitVector.Select1(1); // root's first child LBSIndex: Select1(1) = 2
-        while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
+        while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
             nodeKey = keys[keyIndex];
@@ -59,7 +59,7 @@ public class LOUDSTrie<T>
         string nodeKey;
         int LBSIndex = bitVector.Select1(1);
         var builder = new DefaultInterpolatedStringHandler();
-        while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
+        while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
             nodeKey = keys[keyIndex];
@@ -104,7 +104,7 @@ public class LOUDSTrie<T>
 
     public void SearchChild(int LBSIndex, List<(string, T[])> results, StringBuilder keyBuilder)
     {
-        while (bitVector.Get(LBSIndex))
+        while (!bitVector.GetBit(LBSIndex))
         {
             int keyIndex = bitVector.Rank0(LBSIndex + 1);
             string nodeKey = keys[keyIndex];
@@ -126,7 +126,7 @@ public class LOUDSTrie<T>
         int keyIndex;
         string nodeKey;
         int LBSIndex = bitVector.Select1(1);
-        while (bitVector.Get(LBSIndex) && querySpan.Length > 0)
+        while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
             nodeKey = keys[keyIndex];

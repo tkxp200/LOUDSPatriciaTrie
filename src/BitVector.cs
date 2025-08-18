@@ -102,7 +102,7 @@ public class BitVector
         return position + BitOperations.TrailingZeroCount(mask) + 1;
     }
 
-    public bool Get(int position)
+    public bool GetBit(int position)
     {
         var index = position / SMALL_BLOCK_SPLIT_SIZE;
         var bitPos = position % SMALL_BLOCK_SPLIT_SIZE;
