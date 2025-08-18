@@ -24,33 +24,33 @@ public class BitVector
     const int MAX_OUTPUT_BITSIZE = 1024;
     const int MAX_INDEX = 15;
 
-    private readonly List<ushort> _bitArray;
-    private readonly uint _size;
-    private readonly int[] _bigBlock;
-    private readonly short[,] _smallBlock;
+    private readonly List<ushort> bitArray;
+    private readonly uint size;
+    private readonly int[] bigBlock;
+    private readonly short[,] smallBlock;
 
     public BitVector(List<ushort> bitArray)
     {
-        _bitArray = bitArray;
-        _size = (uint)_bitArray.Count * SMALL_BLOCK_SPLIT_SIZE;
+        this.bitArray = bitArray;
+        size = (uint)bitArray.Count * SMALL_BLOCK_SPLIT_SIZE;
         int bigBlockSize = bitArray.Count / SMALL_BLOCK_SIZE;
-        _bigBlock = new int[bigBlockSize + 1]; // bigBlock[0] = 0
-        _smallBlock = new short[bigBlockSize, SMALL_BLOCK_SIZE + 1]; //smallBlock[*, 0] = 0
+        bigBlock = new int[bigBlockSize + 1]; // bigBlock[0] = 0
+        smallBlock = new short[bigBlockSize, SMALL_BLOCK_SIZE + 1]; //smallBlock[*, 0] = 0
         Build();
     }
 
 
     private int Rank1(int position)
     {
-        if ((uint)position > _size) return -1;
+        if ((uint)position > size) return -1;
 
         int count = 0;
         int bigBlockIndex = position / BIG_BLOCK_SPLIT_SIZE;
-        count += _bigBlock[bigBlockIndex];
+        count += bigBlock[bigBlockIndex];
         int smallBlockIndex = position % BIG_BLOCK_SPLIT_SIZE / SMALL_BLOCK_SPLIT_SIZE;
-        count += _smallBlock[bigBlockIndex, smallBlockIndex];
+        count += smallBlock[bigBlockIndex, smallBlockIndex];
         uint mask = (uint)(1 << (position % SMALL_BLOCK_SPLIT_SIZE)) - 1;
-        count += BitOperations.PopCount(_bitArray[position / SMALL_BLOCK_SPLIT_SIZE] & mask);
+        count += BitOperations.PopCount(bitArray[position / SMALL_BLOCK_SPLIT_SIZE] & mask);
         return count;
     }
 
@@ -61,39 +61,39 @@ public class BitVector
 
     public int Select1(int count)
     {
-        if ((uint)count > _size) return -1;
+        if ((uint)count > size) return -1;
         if (count == 0) return -1;
 
         int position = 0;
         int remain = count;
 
         int left = -1;
-        int right = _bigBlock.Length;
+        int right = bigBlock.Length;
         while (right - left > 1)
         {
             int mid = (left + right) / 2;
 
-            if (_bigBlock[mid] < remain) left = mid;
+            if (bigBlock[mid] < remain) left = mid;
             else right = mid;
         }
-        int bigIndex = left;
-        position += bigIndex * BIG_BLOCK_SPLIT_SIZE;
-        remain -= _bigBlock[bigIndex];
+        int bigBlockIndex = left;
+        position += bigBlockIndex * BIG_BLOCK_SPLIT_SIZE;
+        remain -= bigBlock[bigBlockIndex];
 
         left = -1;
-        right = _smallBlock.GetLength(1);
+        right = smallBlock.GetLength(1);
         while (right - left > 1)
         {
             int mid = (left + right) / 2;
 
-            if (_smallBlock[bigIndex, mid] < remain) left = mid;
+            if (smallBlock[bigBlockIndex, mid] < remain) left = mid;
             else right = mid;
         }
-        int smallIndex = left;
-        position += smallIndex * SMALL_BLOCK_SPLIT_SIZE;
-        remain -= _smallBlock[bigIndex, smallIndex];
+        int smallBlockIndex = left;
+        position += smallBlockIndex * SMALL_BLOCK_SPLIT_SIZE;
+        remain -= smallBlock[bigBlockIndex, smallBlockIndex];
 
-        var mask = _bitArray[position / SMALL_BLOCK_SPLIT_SIZE];
+        var mask = bitArray[position / SMALL_BLOCK_SPLIT_SIZE];
         for (remain--; remain > 0; remain--)
         {
             mask &= (ushort)(mask - 1);
@@ -106,7 +106,7 @@ public class BitVector
     {
         var index = position / SMALL_BLOCK_SPLIT_SIZE;
         var bitPos = position % SMALL_BLOCK_SPLIT_SIZE;
-        return (_bitArray[index] & (1 << bitPos)) != 0;
+        return (bitArray[index] & (1 << bitPos)) != 0;
     }
 
     private void Build()
@@ -114,15 +114,15 @@ public class BitVector
         int count = 0;
         int smallBlockIndex = 0;
         int bigBlockIndex = 1;
-        var span = CollectionsMarshal.AsSpan(_bitArray);
+        var span = CollectionsMarshal.AsSpan(bitArray);
         for (int i = 0; i < span.Length; i++)
         {
             smallBlockIndex++;
             count += BitOperations.PopCount(span[i]);
-            _smallBlock[bigBlockIndex - 1, smallBlockIndex] = (short)count;
+            smallBlock[bigBlockIndex - 1, smallBlockIndex] = (short)count;
             if (smallBlockIndex == SMALL_BLOCK_SIZE)
             {
-                _bigBlock[bigBlockIndex] = _bigBlock[bigBlockIndex - 1] + count;
+                bigBlock[bigBlockIndex] = bigBlock[bigBlockIndex - 1] + count;
                 bigBlockIndex++;
                 smallBlockIndex = 0;
                 count = 0;
@@ -133,32 +133,32 @@ public class BitVector
     public string Debug()
     {
         var builder = new StringBuilder();
-        builder.AppendLine(CultureInfo.InvariantCulture, $"BigBlockSize: {_bigBlock.Length}");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"SmallBlockSize: {_smallBlock.GetLength(0)},{_smallBlock.GetLength(1)}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BigBlockSize: {bigBlock.Length}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"SmallBlockSize: {smallBlock.GetLength(0)},{smallBlock.GetLength(1)}");
         builder.AppendLine();
 
-        if (_size > MAX_OUTPUT_BITSIZE) return builder.ToString();
+        if (size > MAX_OUTPUT_BITSIZE) return builder.ToString();
 
-        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {_bitArray.Count}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {bitArray.Count}");
 
         builder.AppendLine("BitVector:");
-        for (int i = 0; i < MathF.Min(_bitArray.Count, MAX_OUTPUT_BITSIZE); i++)
+        for (int i = 0; i < MathF.Min(bitArray.Count, MAX_OUTPUT_BITSIZE); i++)
         {
-            builder.Append(Convert.ToString(_bitArray[i], 2).PadLeft(MAX_INDEX + 1, '0').Reverse().ToArray());
+            builder.Append(Convert.ToString(bitArray[i], 2).PadLeft(MAX_INDEX + 1, '0').Reverse().ToArray());
             builder.AppendLine();
         }
         builder.AppendLine();
         builder.AppendLine();
 
         builder.AppendLine("BigBlock:");
-        builder.AppendJoin(",", _bigBlock).AppendLine();
+        builder.AppendJoin(",", bigBlock).AppendLine();
         builder.AppendLine();
 
         builder.AppendLine("smallBlock:");
-        for (int i = 0; i < _smallBlock.GetLength(0); i++)
+        for (int i = 0; i < smallBlock.GetLength(0); i++)
         {
-            var rowArray = Enumerable.Range(0, _smallBlock.GetLength(1))
-                                    .Select(j => _smallBlock[i, j]);
+            var rowArray = Enumerable.Range(0, smallBlock.GetLength(1))
+                                    .Select(j => smallBlock[i, j]);
             builder.AppendJoin(",", rowArray).AppendLine();
         }
         builder.AppendLine();
