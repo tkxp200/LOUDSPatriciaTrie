@@ -16,7 +16,7 @@ public class LOUDSTrie<T>
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
     {
         var baseTrie = new BaseTrie<T>(keysets);
-        this.keysets = baseTrie.Keysets();
+        this.keysets = baseTrie.Keysets().ToArray();
         Build(baseTrie);
     }
 

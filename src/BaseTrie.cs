@@ -5,7 +5,7 @@ namespace Trie;
 public class BaseTrie<T>
 {
     private readonly BaseTrieNode rootNode;
-    private T[][] keysets = null!;
+    private List<T[]> keysets = null!;
 
     public BaseTrie(Dictionary<string, List<T>> keysets)
     {
@@ -13,7 +13,7 @@ public class BaseTrie<T>
         Build(keysets);
     }
 
-    public T[][] Keysets()
+    public List<T[]> Keysets()
     {
         return keysets;
     }
@@ -25,11 +25,12 @@ public class BaseTrie<T>
 
     private void Build(Dictionary<string, List<T>> keysets)
     {
-        this.keysets = new T[keysets.Count][];
+        this.keysets = new(keysets.Count);
         int count = 0;
         foreach (var keyset in keysets.OrderBy(e => e.Key))
         {
-            this.keysets[count] = keyset.Value.ToArray();
+            // this.keysets[count] = keyset.Value.ToArray();
+            this.keysets.Add(keyset.Value.ToArray());
             BaseTrieNode prev = rootNode;
             BaseTrieNode current;
             for (int i = 0; i < keyset.Key.Length; i++)
