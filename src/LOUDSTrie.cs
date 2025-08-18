@@ -10,7 +10,8 @@ public class LOUDSTrie<T>
 {
     private BitVector bitVector = null!;
     private readonly T[][] keysets;
-    private string[] keys = null!;
+    // private string[] keys = null!;
+    private ReadOnlyMemory<char>[] keys = null!;
     private int?[] indexes = null!;
 
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
@@ -25,12 +26,12 @@ public class LOUDSTrie<T>
         var querySpan = query.AsSpan(0); // string to span<>
         int queryIndex = 0;
         int keyIndex;
-        string nodeKey;
+        ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1); // root's first child LBSIndex: Select1(1) = 2
         while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex];
+            nodeKey = keys[keyIndex].Span;
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 queryIndex += nodeKey.Length;
@@ -56,17 +57,17 @@ public class LOUDSTrie<T>
         var querySpan = query.AsSpan(0);
         int queryIndex = 0;
         int keyIndex;
-        string nodeKey;
+        ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1);
         var builder = new DefaultInterpolatedStringHandler();
         while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex];
+            nodeKey = keys[keyIndex].Span;
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 queryIndex += nodeKey.Length;
-                builder.AppendLiteral(nodeKey);
+                builder.AppendFormatted(nodeKey);
                 if (queryIndex == query.Length)
                 {
                     var index = indexes[keyIndex];
@@ -76,9 +77,9 @@ public class LOUDSTrie<T>
                 querySpan = query.AsSpan(queryIndex);
                 LBSIndex = bitVector.Select1(keyIndex);
             }
-            else if (nodeKey.StartsWith(querySpan.ToString(), StringComparison.Ordinal))
+            else if (nodeKey.StartsWith(querySpan, StringComparison.Ordinal))
             {
-                builder.AppendLiteral(nodeKey);
+                builder.AppendFormatted(nodeKey);
                 var index = indexes[keyIndex];
                 if (index != null) return (LBSIndex, builder.ToStringAndClear(), keysets[(int)index]);
                 else return (LBSIndex, builder.ToStringAndClear(), []);
@@ -107,7 +108,7 @@ public class LOUDSTrie<T>
         while (!bitVector.GetBit(LBSIndex))
         {
             int keyIndex = bitVector.Rank0(LBSIndex + 1);
-            string nodeKey = keys[keyIndex];
+            var nodeKey = keys[keyIndex];
             keyBuilder.Append(nodeKey);
             var index = indexes[keyIndex];
             if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
@@ -124,15 +125,15 @@ public class LOUDSTrie<T>
         var querySpan = query.AsSpan(0);
         int queryIndex = 0;
         int keyIndex;
-        string nodeKey;
+        ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1);
         while (!bitVector.GetBit(LBSIndex) && querySpan.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex];
+            nodeKey = keys[keyIndex].Span;
             if (querySpan.StartsWith(nodeKey, StringComparison.Ordinal))
             {
-                keyBuilder.AppendLiteral(nodeKey);
+                keyBuilder.AppendFormatted(nodeKey);
                 queryIndex += nodeKey.Length;
                 var index = indexes[keyIndex];
                 if (index != null) results.Add((keyBuilder.ToString(), keysets[(int)index]));
@@ -175,7 +176,7 @@ public class LOUDSTrie<T>
     private void Build(BaseTrie<T> baseTrie)
     {
         var bitVectorBuilder = new BitVectorBuilder();
-        List<string> keyList = new() { "", ""};
+        List<ReadOnlyMemory<char>> keyList = new() { string.Empty.AsMemory(), string.Empty.AsMemory()};
         List<int?> indexList = new() { null, null};
         var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
 
@@ -195,7 +196,7 @@ public class LOUDSTrie<T>
                         keyBuilder.AppendFormatted(current.key);
                     }
                     bitVectorBuilder.Add(false);
-                    keyList.Add(keyBuilder.ToStringAndClear());
+                    keyList.Add(keyBuilder.ToStringAndClear().AsMemory());
                     indexList.Add(current.index);
                     queue.Enqueue(current);
                 }
