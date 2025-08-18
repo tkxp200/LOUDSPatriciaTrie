@@ -25,7 +25,7 @@ var trie = new LOUDSTrie<int>(list);
 
 int[] result = trie.ExactMatchSearch("i");
 Console.WriteLine($"search 'i': {string.Join(", ", result)}");
-result = trie.Search("ou");
+result = trie.ExactMatchSearch("ou");
 Console.WriteLine($"search 'ou': {string.Join(", ", result)}");
 ```
 
