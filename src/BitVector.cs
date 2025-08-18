@@ -151,7 +151,7 @@ public class BitVector
         builder.AppendLine();
 
         builder.AppendLine("BigBlock:");
-        builder.AppendLine(string.Join(",", _bigBlock));
+        builder.AppendJoin(",", _bigBlock).AppendLine();
         builder.AppendLine();
 
         builder.AppendLine("smallBlock:");
@@ -159,7 +159,7 @@ public class BitVector
         {
             var rowArray = Enumerable.Range(0, _smallBlock.GetLength(1))
                                     .Select(j => _smallBlock[i, j]);
-            builder.AppendLine(string.Join(",", rowArray));
+            builder.AppendJoin(",", rowArray).AppendLine();
         }
         builder.AppendLine();
 
