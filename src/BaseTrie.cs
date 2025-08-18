@@ -4,8 +4,8 @@ namespace Trie;
 
 public class BaseTrie<T>
 {
-    readonly BaseTrieNode rootNode;
-    T[][] keysets = null!;
+    private readonly BaseTrieNode rootNode;
+    private T[][] keysets = null!;
 
     public BaseTrie(Dictionary<string, List<T>> keysets)
     {
