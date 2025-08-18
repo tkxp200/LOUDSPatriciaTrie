@@ -2,10 +2,10 @@ namespace TrieUtil;
 
 public class BaseTrieNode
 {
-    public Dictionary<char, BaseTrieNode> childs = new();
-    public char? key;
-    public bool leaf;
-    public int? index;
+    public Dictionary<char, BaseTrieNode> childs { get; } = new();
+    public char? key { get; }
+    public bool leaf { get; }
+    public int? index { get; }
 
     public BaseTrieNode(char? key, bool leaf, int? index)
     {
