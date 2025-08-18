@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using TrieUtil;
+using LOUDSTrieUtil;
 
-namespace Trie;
+namespace LOUDSPatriciaTrie;
 
 public class LOUDSTrie<T>
 {
@@ -149,7 +149,7 @@ public class LOUDSTrie<T>
         return results;
     }
 
-    public string Debug()
+    private string Debug()
     {
         var builder = new StringBuilder();
         builder.Append(bitVector.ToString());
@@ -184,7 +184,7 @@ public class LOUDSTrie<T>
         queue.Enqueue(baseTrie.GetRootNode());
         while (queue.TryDequeue(out var item))
         {
-            if (item != null)
+            if (item is not null)
             {
                 foreach (var child in item.childs)
                 {

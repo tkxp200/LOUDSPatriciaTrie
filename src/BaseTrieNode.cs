@@ -1,4 +1,4 @@
-namespace TrieUtil;
+namespace LOUDSTrieUtil;
 
 public class BaseTrieNode
 {

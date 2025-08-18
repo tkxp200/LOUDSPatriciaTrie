@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace TrieUtil;
+namespace LOUDSTrieUtil;
 
 public class BitVector
 {
@@ -130,7 +130,7 @@ public class BitVector
         }
     }
 
-    public override string ToString()
+    public string Debug()
     {
         var builder = new StringBuilder();
         builder.AppendLine(CultureInfo.InvariantCulture, $"BigBlockSize: {_bigBlock.Length}");
@@ -235,7 +235,7 @@ public class BitVectorBuilder
         }
     }
 
-    public override string ToString()
+    private string Debug()
     {
 
         var builder = new StringBuilder();

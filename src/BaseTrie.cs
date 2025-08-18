@@ -1,6 +1,4 @@
-using TrieUtil;
-
-namespace Trie;
+namespace LOUDSTrieUtil;
 
 public class BaseTrie<T>
 {
@@ -53,7 +51,7 @@ public class BaseTrie<T>
     }
 
 
-    public T[] Search(string key)
+    private T[] Search(string key)
     {
         BaseTrieNode current = rootNode;
         foreach (var c in key)
