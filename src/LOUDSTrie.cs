@@ -167,7 +167,7 @@ public partial class LOUDSTrie<T>
     private string Debug()
     {
         var builder = new StringBuilder();
-        builder.Append(bitVector.ToString());
+        builder.Append(bitVector.Debug());
         builder.AppendLine("keysets:");
         foreach (var keyset in keysets)
         {
