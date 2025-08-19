@@ -27,7 +27,7 @@ public partial class BitVector
     const int MAX_INDEX = 15;
 
     [MemoryPackOrder(0)]
-    public List<ushort> bitArray{ get; }
+    public ushort[] bitArray{ get; }
     [MemoryPackOrder(1)]
     public uint size{ get; }
     [MemoryPackOrder(2)]
@@ -37,7 +37,7 @@ public partial class BitVector
 
     public BitVector(List<ushort> bitArray)
     {
-        this.bitArray = bitArray;
+        this.bitArray = bitArray.ToArray();
         size = (uint)bitArray.Count * SMALL_BLOCK_SPLIT_SIZE;
         int bigBlockSize = bitArray.Count / SMALL_BLOCK_SIZE;
         bigBlock = new int[bigBlockSize + 1]; // bigBlock[0] = 0
@@ -46,7 +46,7 @@ public partial class BitVector
     }
 
     [MemoryPackConstructor]
-    public BitVector(List<ushort> bitArray, uint size, int[] bigBlock, short[,] smallBlock)
+    public BitVector(ushort[] bitArray, uint size, int[] bigBlock, short[,] smallBlock)
     {
         this.bitArray = bitArray;
         this.size = size;
@@ -129,11 +129,10 @@ public partial class BitVector
         int count = 0;
         int smallBlockIndex = 0;
         int bigBlockIndex = 1;
-        var span = CollectionsMarshal.AsSpan(bitArray);
-        for (int i = 0; i < span.Length; i++)
+        for (int i = 0; i < bitArray.Length; i++)
         {
             smallBlockIndex++;
-            count += BitOperations.PopCount(span[i]);
+            count += BitOperations.PopCount(bitArray[i]);
             smallBlock[bigBlockIndex - 1, smallBlockIndex] = (short)count;
             if (smallBlockIndex == SMALL_BLOCK_SIZE)
             {
@@ -154,10 +153,10 @@ public partial class BitVector
 
         if (size > MAX_OUTPUT_BITSIZE) return builder.ToString();
 
-        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {bitArray.Count}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"BitVector Count: {bitArray.Length}");
 
         builder.AppendLine("BitVector:");
-        for (int i = 0; i < MathF.Min(bitArray.Count, MAX_OUTPUT_BITSIZE); i++)
+        for (int i = 0; i < MathF.Min(bitArray.Length, MAX_OUTPUT_BITSIZE); i++)
         {
             builder.Append(Convert.ToString(bitArray[i], 2).PadLeft(MAX_INDEX + 1, '0').Reverse().ToArray());
             builder.AppendLine();
