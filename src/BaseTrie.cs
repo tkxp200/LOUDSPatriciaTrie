@@ -46,7 +46,6 @@ public class BaseTrie<T>
                 }
             }
             count++;
-            Console.WriteLine();
         }
     }
 
