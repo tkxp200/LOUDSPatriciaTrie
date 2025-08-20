@@ -208,7 +208,7 @@ public partial class LOUDSTrie<T>
         foreach (var key in keys)
         {
             if (key is not null) builder.AppendLine(CultureInfo.InvariantCulture, $"{string.Join("", key)}");
-            else builder.AppendLine(CultureInfo.InvariantCulture, $"");
+            else builder.AppendLine();
         }
         builder.AppendLine();
         builder.AppendLine("indexes:");
