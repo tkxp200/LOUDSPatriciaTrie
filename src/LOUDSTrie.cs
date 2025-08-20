@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -16,7 +17,7 @@ public partial class LOUDSTrie<T>
     public T[][] keysets { get; }
     // private string[] keys = null!;
     [MemoryPackOrder(2)]
-    public ReadOnlyMemory<char>[] keys { get; private set; } = null!;
+    public byte[]?[] keys { get; private set; } = null!;
     [MemoryPackOrder(3)]
     public int[] indexes { get; private set; } = null!;
 
@@ -28,7 +29,7 @@ public partial class LOUDSTrie<T>
     }
 
     [MemoryPackConstructor]
-    public LOUDSTrie(BitVector bitVector, T[][] keysets, ReadOnlyMemory<char>[] keys, int[] indexes)
+    public LOUDSTrie(BitVector bitVector, T[][] keysets, byte[][] keys, int[] indexes)
     {
         this.bitVector = bitVector;
         this.keysets = keysets;
@@ -43,15 +44,18 @@ public partial class LOUDSTrie<T>
 
     public T[] ExactMatchSearch(ReadOnlySpan<char> query)
     {
-        var span = query;
+        int maxByteCount = Encoding.UTF8.GetMaxByteCount(query.Length);
+        Span<byte> buffer = new byte[maxByteCount];
+        var written = Encoding.UTF8.GetBytes(query, buffer);
+        var span = buffer.Slice(0, written);
         int keyIndex;
-        ReadOnlySpan<char> nodeKey;
+        ReadOnlySpan<byte> nodeKey;
         int LBSIndex = bitVector.Select1(1); // root's first child LBSIndex: Select1(1) = 2
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
-            if (span.StartsWith(nodeKey, StringComparison.Ordinal))
+            nodeKey = keys[keyIndex].AsSpan();
+            if (span.StartsWith(nodeKey))
             {
                 if (span.Length == nodeKey.Length)
                 {
@@ -70,42 +74,52 @@ public partial class LOUDSTrie<T>
         return [];
     }
 
-    private (int, string, T[]) PrefixSearch(ReadOnlySpan<char> query)
+    private (int, MemoryStream, T[]) PrefixSearch(ReadOnlySpan<byte> query)
     {
         var span = query;
         int keyIndex;
-        ReadOnlySpan<char> nodeKey;
+        ReadOnlySpan<byte> nodeKey;
         int LBSIndex = bitVector.Select1(1);
-        var builder = new StringBuilder();
+        var builder = new MemoryStream();
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
-            if (span.StartsWith(nodeKey, StringComparison.Ordinal))
+            nodeKey = keys[keyIndex].AsSpan();
+            if (span.StartsWith(nodeKey))
             {
-                builder.Append(nodeKey);
+                builder.Write(nodeKey);
                 if (span.Length == nodeKey.Length)
                 {
                     var index = indexes[keyIndex];
-                    if (index >= 0) return (LBSIndex, query.ToString(), keysets[index]);
-                    else return (LBSIndex, query.ToString(), []);
+                    if (index >= 0)
+                    {
+                        builder.SetLength(0);
+                        builder.Write(query);
+                        return (LBSIndex, builder, keysets[index]);
+                    }
+                    else
+                    {
+                        builder.SetLength(0);
+                        builder.Write(query);
+                        return (LBSIndex, builder, []);
+                    }
                 }
                 span = span.Slice(nodeKey.Length);
                 LBSIndex = bitVector.Select1(keyIndex);
             }
-            else if (nodeKey.StartsWith(span, StringComparison.Ordinal))
+            else if (nodeKey.StartsWith(span))
             {
-                builder.Append(nodeKey);
+                builder.Write(nodeKey);
                 var index = indexes[keyIndex];
-                if (index >= 0) return (LBSIndex, builder.ToString(), keysets[index]);
-                else return (LBSIndex, builder.ToString(), []);
+                if (index >= 0) return (LBSIndex, builder, keysets[index]);
+                else return (LBSIndex, builder, []);
             }
             else
             {
                 LBSIndex++;
             }
         }
-        return (-1, "", []);
+        return (-1, builder, []);
     }
 
     public List<(string, T[])> PredictiveSearch(string query)
@@ -115,26 +129,30 @@ public partial class LOUDSTrie<T>
 
     public List<(string, T[])> PredictiveSearch(ReadOnlySpan<char> query)
     {
+        int maxByteCount = Encoding.UTF8.GetMaxByteCount(query.Length);
+        Span<byte> buffer = new byte[maxByteCount];
+        var written = Encoding.UTF8.GetBytes(query, buffer);
+        var span = buffer.Slice(0, written);
+
         List<(string, T[])> results = new();
-        var querySearch = PrefixSearch(query);
+        var querySearch = PrefixSearch(span);
         if (querySearch.Item1 < 0) return [];
-        if (querySearch.Item3.Length != 0) results.Add((querySearch.Item2, querySearch.Item3));
-        var keyBuilder = new StringBuilder(querySearch.Item2);
-        SearchChild(bitVector.Select1(bitVector.Rank0(querySearch.Item1 + 1)), results, keyBuilder);
+        if (querySearch.Item3.Length != 0) results.Add((Encoding.UTF8.GetString(querySearch.Item2.GetBuffer(), 0, (int)querySearch.Item2.Length), querySearch.Item3));
+        SearchChild(bitVector.Select1(bitVector.Rank0(querySearch.Item1 + 1)), results, querySearch.Item2);
         return results;
     }
 
-    public void SearchChild(int LBSIndex, List<(string, T[])> results, StringBuilder keyBuilder)
+    public void SearchChild(int LBSIndex, List<(string, T[])> results, MemoryStream keyBuilder)
     {
         while (!bitVector.GetBit(LBSIndex))
         {
             int keyIndex = bitVector.Rank0(LBSIndex + 1);
-            var nodeKey = keys[keyIndex];
-            keyBuilder.Append(nodeKey);
+            var nodeKey = keys[keyIndex].AsSpan();
+            keyBuilder.Write(nodeKey);
             var index = indexes[keyIndex];
-            if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
+            if (index >= 0) results.Add((Encoding.UTF8.GetString(keyBuilder.GetBuffer(), 0, (int)keyBuilder.Length), keysets[index]));
             SearchChild(bitVector.Select1(keyIndex), results, keyBuilder);
-            keyBuilder.Remove(keyBuilder.Length - nodeKey.Length, nodeKey.Length);
+            keyBuilder.SetLength(keyBuilder.Length - nodeKey.Length);
             LBSIndex++;
         }
     }
@@ -146,23 +164,25 @@ public partial class LOUDSTrie<T>
 
     public List<(string, T[])> CommonPrefixSearch(ReadOnlySpan<char> query)
     {
+        int maxByteCount = Encoding.UTF8.GetMaxByteCount(query.Length);
+        Span<byte> buffer = new byte[maxByteCount];
+        var written = Encoding.UTF8.GetBytes(query, buffer);
+        var span = buffer.Slice(0, written);
         List<(string, T[])> results = new();
-        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
-        var span = query;
-        // int queryIndex = 0;
+        var keyBuilder = new ArrayBufferWriter<byte>();
         int keyIndex;
-        ReadOnlySpan<char> nodeKey;
+        ReadOnlySpan<byte> nodeKey;
         int LBSIndex = bitVector.Select1(1);
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
             keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
-            if (span.StartsWith(nodeKey, StringComparison.Ordinal))
+            nodeKey = keys[keyIndex].AsSpan();
+            if (span.StartsWith(nodeKey))
             {
-                keyBuilder.AppendFormatted(nodeKey);
+                keyBuilder.Write(nodeKey);
                 // queryIndex += nodeKey.Length;
                 var index = indexes[keyIndex];
-                if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
+                if (index >= 0) results.Add((Encoding.UTF8.GetString(keyBuilder.WrittenSpan), keysets[index]));
                 span = span.Slice(nodeKey.Length);
                 LBSIndex = bitVector.Select1(keyIndex);
             }
@@ -171,7 +191,6 @@ public partial class LOUDSTrie<T>
                 LBSIndex++;
             }
         }
-        keyBuilder.ToStringAndClear();
         return results;
     }
 
@@ -188,7 +207,8 @@ public partial class LOUDSTrie<T>
         builder.AppendLine("keys:");
         foreach (var key in keys)
         {
-            builder.AppendLine(CultureInfo.InvariantCulture, $"\"{key}\"");
+            if (key is not null) builder.AppendLine(CultureInfo.InvariantCulture, $"{string.Join("", key)}");
+            else builder.AppendLine(CultureInfo.InvariantCulture, $"");
         }
         builder.AppendLine();
         builder.AppendLine("indexes:");
@@ -202,9 +222,9 @@ public partial class LOUDSTrie<T>
     private void Build(BaseTrie<T> baseTrie)
     {
         var bitVectorBuilder = new BitVectorBuilder();
-        List<ReadOnlyMemory<char>> keyList = new() { string.Empty.AsMemory(), string.Empty.AsMemory()};
+        List<byte[]?> keyList = new() { null, null};
         List<int> indexList = new() { -1, -1};
-        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
+        var keyBuilder = new MemoryStream();
 
         Queue<BaseTrieNode> queue = new();
         queue.Enqueue(baseTrie.GetRootNode());
@@ -215,14 +235,15 @@ public partial class LOUDSTrie<T>
                 foreach (var child in item.childs)
                 {
                     var current = child.Value;
-                    keyBuilder.AppendFormatted(current.key);
+                    if (current.key is not null) keyBuilder.Write([(byte)current.key]);
                     while (current.childs.Count == 1 && !current.leaf)
                     {
                         current = current.childs.First().Value;
-                        keyBuilder.AppendFormatted(current.key);
+                        if (current.key is not null) keyBuilder.Write([(byte)current.key]);
                     }
                     bitVectorBuilder.Add(false);
-                    keyList.Add(keyBuilder.ToStringAndClear().AsMemory());
+                    keyList.Add(keyBuilder.ToArray());
+                    keyBuilder.SetLength(0);
                     indexList.Add(current.index);
                     queue.Enqueue(current);
                 }

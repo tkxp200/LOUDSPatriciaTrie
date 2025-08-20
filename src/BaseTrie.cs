@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace LOUDSTrieUtil;
 
 public class BaseTrie<T>
@@ -23,25 +25,31 @@ public class BaseTrie<T>
 
     private void Build(Dictionary<string, List<T>> keysets)
     {
+        var entries = new List<(byte[] KeyBytes, List<T> Value)>(keysets.Count);
+        foreach (var item in keysets)
+        {
+            entries.Add((Encoding.UTF8.GetBytes(item.Key), item.Value));
+        }
+
+        entries.Sort((a, b) => ((ReadOnlySpan<byte>)a.KeyBytes).SequenceCompareTo(b.KeyBytes));
         this.keysets = new(keysets.Count);
         int count = 0;
-        foreach (var keyset in keysets.OrderBy(e => e.Key))
+        foreach (var keyset in entries)
         {
-            // this.keysets[count] = keyset.Value.ToArray();
             this.keysets.Add(keyset.Value.ToArray());
             BaseTrieNode prev = rootNode;
             BaseTrieNode current;
-            for (int i = 0; i < keyset.Key.Length; i++)
+            for (int i = 0; i < keyset.KeyBytes.Length; i++)
             {
-                char c = keyset.Key[i];
-                if (prev.childs.TryGetValue(c, out var child))
+                var b = keyset.KeyBytes[i];
+                if (prev.childs.TryGetValue(b, out var child))
                 {
                     prev = child;
                 }
                 else
                 {
-                    current = new BaseTrieNode(c, i == keyset.Key.Length - 1, i == keyset.Key.Length - 1 ? count : -1);
-                    prev.AddChild(c, current);
+                    current = new BaseTrieNode(b, i == keyset.KeyBytes.Length - 1, i == keyset.KeyBytes.Length - 1 ? count : -1);
+                    prev.AddChild(b, current);
                     prev = current;
                 }
             }
@@ -50,12 +58,13 @@ public class BaseTrie<T>
     }
 
 
-    private T[] Search(string key)
+    private T[] Search(string query)
     {
+        var queryBytes = Encoding.UTF8.GetBytes(query);
         BaseTrieNode current = rootNode;
-        foreach (var c in key)
+        foreach (var b in queryBytes)
         {
-            if (current.childs.TryGetValue(c, out var next))
+            if (current.childs.TryGetValue(b, out var next))
             {
                 current = next;
             }
@@ -65,7 +74,7 @@ public class BaseTrie<T>
             }
         }
 
-        if (current.leaf && current.index >= 0) return keysets[(int)current.index];
+        if (current.leaf && current.index >= 0) return keysets[current.index];
 
         return [];
     }
