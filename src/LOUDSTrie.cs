@@ -15,9 +15,12 @@ public partial class LOUDSTrie<T>
     [MemoryPackOrder(1)]
     public T[][] keysets { get; }
     // private string[] keys = null!;
+    // public ReadOnlyMemory<char>[] keys { get; private set; } = null!;
     [MemoryPackOrder(2)]
-    public ReadOnlyMemory<char>[] keys { get; private set; } = null!;
+    public char[] tailKeys { get; private set; } = null!;
     [MemoryPackOrder(3)]
+    public BitVector tailBits { get; private set; } = null!;
+    [MemoryPackOrder(4)]
     public int[] indexes { get; private set; } = null!;
 
     public LOUDSTrie(Dictionary<string, List<T>> keysets)
@@ -28,11 +31,12 @@ public partial class LOUDSTrie<T>
     }
 
     [MemoryPackConstructor]
-    public LOUDSTrie(BitVector bitVector, T[][] keysets, ReadOnlyMemory<char>[] keys, int[] indexes)
+    public LOUDSTrie(BitVector bitVector, T[][] keysets, char[] tailKeys, BitVector tailBits, int[] indexes)
     {
         this.bitVector = bitVector;
         this.keysets = keysets;
-        this.keys = keys;
+        this.tailKeys = tailKeys;
+        this.tailBits = tailBits;
         this.indexes = indexes;
     }
 
@@ -44,23 +48,30 @@ public partial class LOUDSTrie<T>
     public T[] ExactMatchSearch(ReadOnlySpan<char> query)
     {
         var span = query;
-        int keyIndex;
+        int nodeNumber;
+        int tailStartIndex;
+        int tailEndIndex;
         ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1); // root's first child LBSIndex: Select1(1) = 2
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
-            keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
+            nodeNumber = bitVector.Rank0(LBSIndex + 1);
+            tailStartIndex = tailBits.Select1(nodeNumber) - 1;
+            tailEndIndex = tailBits.Select1(nodeNumber + 1) - 1;
+            if (tailEndIndex >= 0)
+                nodeKey = tailKeys[tailStartIndex..tailEndIndex].AsSpan();
+            else
+                nodeKey = tailKeys[tailStartIndex..].AsSpan();
             if (span.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 if (span.Length == nodeKey.Length)
                 {
-                    var index = indexes[keyIndex];
+                    var index = indexes[nodeNumber];
                     if (index >= 0) return keysets[index];
                     else return [];
                 }
                 span = span.Slice(nodeKey.Length);
-                LBSIndex = bitVector.Select1(keyIndex);
+                LBSIndex = bitVector.Select1(nodeNumber);
             }
             else
             {
@@ -73,30 +84,37 @@ public partial class LOUDSTrie<T>
     private (int, string, T[]) PrefixSearch(ReadOnlySpan<char> query)
     {
         var span = query;
-        int keyIndex;
+        int nodeNumber;
+        int tailStartIndex;
+        int tailEndIndex;
         ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1);
         var builder = new StringBuilder();
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
-            keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
+            nodeNumber = bitVector.Rank0(LBSIndex + 1);
+            tailStartIndex = tailBits.Select1(nodeNumber) - 1;
+            tailEndIndex = tailBits.Select1(nodeNumber + 1) - 1;
+            if (tailEndIndex >= 0)
+                nodeKey = tailKeys[tailStartIndex..tailEndIndex].AsSpan();
+            else
+                nodeKey = tailKeys[tailStartIndex..].AsSpan();
             if (span.StartsWith(nodeKey, StringComparison.Ordinal))
             {
                 builder.Append(nodeKey);
                 if (span.Length == nodeKey.Length)
                 {
-                    var index = indexes[keyIndex];
+                    var index = indexes[nodeNumber];
                     if (index >= 0) return (LBSIndex, query.ToString(), keysets[index]);
                     else return (LBSIndex, query.ToString(), []);
                 }
                 span = span.Slice(nodeKey.Length);
-                LBSIndex = bitVector.Select1(keyIndex);
+                LBSIndex = bitVector.Select1(nodeNumber);
             }
             else if (nodeKey.StartsWith(span, StringComparison.Ordinal))
             {
                 builder.Append(nodeKey);
-                var index = indexes[keyIndex];
+                var index = indexes[nodeNumber];
                 if (index >= 0) return (LBSIndex, builder.ToString(), keysets[index]);
                 else return (LBSIndex, builder.ToString(), []);
             }
@@ -128,12 +146,18 @@ public partial class LOUDSTrie<T>
     {
         while (!bitVector.GetBit(LBSIndex))
         {
-            int keyIndex = bitVector.Rank0(LBSIndex + 1);
-            var nodeKey = keys[keyIndex];
+            int nodeNumber = bitVector.Rank0(LBSIndex + 1);
+            ReadOnlySpan<char> nodeKey;
+            int tailStartIndex = tailBits.Select1(nodeNumber) - 1;
+            int tailEndIndex = tailBits.Select1(nodeNumber + 1) - 1;
+            if (tailEndIndex >= 0)
+                nodeKey = tailKeys[tailStartIndex..tailEndIndex].AsSpan();
+            else
+                nodeKey = tailKeys[tailStartIndex..].AsSpan();
             keyBuilder.Append(nodeKey);
-            var index = indexes[keyIndex];
+            var index = indexes[nodeNumber];
             if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
-            SearchChild(bitVector.Select1(keyIndex), results, keyBuilder);
+            SearchChild(bitVector.Select1(nodeNumber), results, keyBuilder);
             keyBuilder.Remove(keyBuilder.Length - nodeKey.Length, nodeKey.Length);
             LBSIndex++;
         }
@@ -147,31 +171,35 @@ public partial class LOUDSTrie<T>
     public List<(string, T[])> CommonPrefixSearch(ReadOnlySpan<char> query)
     {
         List<(string, T[])> results = new();
-        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
+        var keyBuilder = new StringBuilder();
         var span = query;
-        // int queryIndex = 0;
-        int keyIndex;
+        int nodeNumber;
+        int tailStartIndex;
+        int tailEndIndex;
         ReadOnlySpan<char> nodeKey;
         int LBSIndex = bitVector.Select1(1);
         while (!bitVector.GetBit(LBSIndex) && span.Length > 0)
         {
-            keyIndex = bitVector.Rank0(LBSIndex + 1);
-            nodeKey = keys[keyIndex].Span;
+            nodeNumber = bitVector.Rank0(LBSIndex + 1);
+            tailStartIndex = tailBits.Select1(nodeNumber) - 1;
+            tailEndIndex = tailBits.Select1(nodeNumber + 1) - 1;
+            if (tailEndIndex >= 0)
+                nodeKey = tailKeys[tailStartIndex..tailEndIndex].AsSpan();
+            else
+                nodeKey = tailKeys[tailStartIndex..].AsSpan();
             if (span.StartsWith(nodeKey, StringComparison.Ordinal))
             {
-                keyBuilder.AppendFormatted(nodeKey);
-                // queryIndex += nodeKey.Length;
-                var index = indexes[keyIndex];
+                keyBuilder.Append(nodeKey);
+                var index = indexes[nodeNumber];
                 if (index >= 0) results.Add((keyBuilder.ToString(), keysets[index]));
                 span = span.Slice(nodeKey.Length);
-                LBSIndex = bitVector.Select1(keyIndex);
+                LBSIndex = bitVector.Select1(nodeNumber);
             }
             else
             {
                 LBSIndex++;
             }
         }
-        keyBuilder.ToStringAndClear();
         return results;
     }
 
@@ -185,11 +213,10 @@ public partial class LOUDSTrie<T>
             builder.AppendLine(keyset.ToString());
         }
         builder.AppendLine();
-        builder.AppendLine("keys:");
-        foreach (var key in keys)
-        {
-            builder.AppendLine(CultureInfo.InvariantCulture, $"\"{key}\"");
-        }
+        builder.Append("tailKeys:");
+        builder.Append(tailKeys);
+        builder.AppendLine();
+        builder.Append(tailBits.Debug());
         builder.AppendLine();
         builder.AppendLine("indexes:");
         foreach (var i in indexes)
@@ -202,9 +229,9 @@ public partial class LOUDSTrie<T>
     private void Build(BaseTrie<T> baseTrie)
     {
         var bitVectorBuilder = new BitVectorBuilder();
-        List<ReadOnlyMemory<char>> keyList = new() { string.Empty.AsMemory(), string.Empty.AsMemory()};
+        StringBuilder tailBuilder = new(new string(' ', 2));
+        var tailBitVector = new BitVectorBuilder();
         List<int> indexList = new() { -1, -1};
-        var keyBuilder = new DefaultInterpolatedStringHandler(0, 0);
 
         Queue<BaseTrieNode> queue = new();
         queue.Enqueue(baseTrie.GetRootNode());
@@ -215,14 +242,15 @@ public partial class LOUDSTrie<T>
                 foreach (var child in item.childs)
                 {
                     var current = child.Value;
-                    keyBuilder.AppendFormatted(current.key);
+                    tailBuilder.Append(current.key);
+                    tailBitVector.Add(true);
                     while (current.childs.Count == 1 && !current.leaf)
                     {
                         current = current.childs.First().Value;
-                        keyBuilder.AppendFormatted(current.key);
+                        tailBuilder.Append(current.key);
+                        tailBitVector.Add(false);
                     }
                     bitVectorBuilder.Add(false);
-                    keyList.Add(keyBuilder.ToStringAndClear().AsMemory());
                     indexList.Add(current.index);
                     queue.Enqueue(current);
                 }
@@ -230,7 +258,8 @@ public partial class LOUDSTrie<T>
             }
         }
         bitVector = bitVectorBuilder.Build();
-        keys = keyList.ToArray();
+        tailBits = tailBitVector.Build();
+        tailKeys = tailBuilder.ToString().ToArray();
         indexes = indexList.ToArray();
     }
 }
