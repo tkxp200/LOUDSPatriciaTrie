@@ -202,10 +202,10 @@ public class BitVectorBuilder
         capacity = SMALL_BLOCK_SIZE;
         bitVectorList = new(capacity);
 
-        AddRoot();
+        // AddRoot();
     }
 
-    private void AddRoot()
+    public void AddRoot()
     {
         Add(false);
         Add(true);
