@@ -1,6 +1,6 @@
 # LOUDS Patricia Trie
 
-This repository provides a memory-efficient, static Patricia Trie implemented in C# using LOUDS (Level-Order Unary Degree Sequence).
+C# implementation of a memory-efficient static Patricia Trie with LOUDS (Level-Order Unary Degree Sequence).
 
 ## Usage
 
