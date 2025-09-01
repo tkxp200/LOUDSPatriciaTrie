@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using MemoryPack;
 
@@ -109,12 +110,12 @@ public partial class BitVector
         remain -= smallBlock[bigBlockIndex, smallBlockIndex];
 
         var mask = bitArray[position / SMALL_BLOCK_SPLIT_SIZE];
-        for (remain--; remain > 0; remain--)
-        {
-            mask &= (ushort)(mask - 1);
-        }
-
-        return position + BitOperations.TrailingZeroCount(mask) + 1;
+        // for (remain--; remain > 0; remain--)
+        // {
+        //     mask &= (ushort)(mask - 1);
+        // }
+        uint value = 1u << (remain - 1);
+        return position + BitOperations.TrailingZeroCount(Bmi2.ParallelBitDeposit(value, mask)) + 1;
     }
 
     public bool GetBit(int position)
